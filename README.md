@@ -57,3 +57,6 @@ Además, Pixel facilita la creación de interfaces visuales interactivas. Aunque
 
 # Conclusión
 Usar la librería Pixel en mi proyecto de simulador de estacionamiento me permitió enfocarme en la lógica y la interacción de los vehículos sin preocuparme por los detalles complejos del renderizado gráfico. La facilidad para gestionar imágenes, animaciones y entradas del usuario me permitió crear una experiencia visual fluida y atractiva para el simulador. Si estás desarrollando un proyecto que requiera gráficos en 2D y una buena interactividad, definitivamente te recomiendo darle un vistazo a Pixel.
+
+
+221262 - Reyes Ruiz Yazmin
