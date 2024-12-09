@@ -19,6 +19,7 @@ En mi proyecto, el objetivo era simular vehículos que se mueven a través de un
 - Estructura Vehiculo:
 Para representar cada vehículo, creé una estructura Vehiculo que almacena datos esenciales, como su posición actual, su estado (estacionado o en movimiento) y un identificador único. La posición y las transformaciones se manejan utilizando el tipo pixel.Vec, que Pixel emplea para definir coordenadas y vectores en 2D.
 
+```bash
 go
 type Vehiculo struct {
     ID                          int
@@ -31,12 +32,14 @@ type Vehiculo struct {
     Teletransportando           bool
     TiempoInicioTeletransportacion time.Time
 }
+```
 
 - Gestión Concurrente:
 En una simulación dinámica, múltiples vehículos operan simultáneamente, lo que requiere un manejo adecuado de concurrencia. Utilicé canales (chan) para la comunicación entre goroutines y candados (sync.Mutex) para proteger el acceso a recursos compartidos.
 
 Por ejemplo, al crear un vehículo:
 
+```bash
 go
 var (
     CanalVehiculos  chan Vehiculo
@@ -56,20 +59,23 @@ func CrearVehiculo(id int) Vehiculo {
     Vehiculos = append(Vehiculos, vehiculo)
     return vehiculo
 }
+```
 
 - Asignación de Hora de Salida:
 Cada vehículo tiene una hora de salida aleatoria, lo que simula cuánto tiempo estará estacionado antes de moverse. Esto fue implementado con una función que calcula la hora basada en la duración asignada:
 
+```bash
 go
 func AsignarHoraSalida(vehiculo *Vehiculo, duracion time.Duration) {
     vehiculo.HoraSalida = time.Now().Add(duracion)
 }
-
+```
 - Representación Visual con Pixel:
 
 Pixel me permitió crear una representación gráfica de los vehículos y moverlos en la pantalla. Para ello, cargué una textura que representaba al vehículo y la dibujé en las posiciones calculadas en tiempo real:
 
-- 1.-Cargar Texturas:
+1.-Cargar Texturas:
+```bash
 go
 func CargarTextura(ruta string) *pixel.Sprite {
     img, err := loadPicture(ruta)
@@ -78,22 +84,26 @@ func CargarTextura(ruta string) *pixel.Sprite {
     }
     return pixel.NewSprite(img, img.Bounds())
 }
+```
 
- - 2.- Dibujar Vehículos:
-
+2.- Dibujar Vehículos:
+```bash
 go
 func DibujarVehiculos(win *pixelgl.Window, sprite *pixel.Sprite) {
     for _, vehiculo := range Vehiculos {
         sprite.Draw(win, pixel.IM.Moved(vehiculo.Posicion))
     }
 }
+```
 
-- 3.- Movimiento Dinámico: En cada ciclo del juego, actualicé las posiciones de los vehículos utilizando interpolación para garantizar que el movimiento fuera fluido:
-
+3.- Movimiento Dinámico: En cada ciclo del juego, actualicé las posiciones de los vehículos utilizando interpolación para garantizar que el movimiento fuera fluido:
+     
+```bash
 go
 func ActualizarPosicion(vehiculo *Vehiculo, destino pixel.Vec) {
     vehiculo.Posicion = vehiculo.Posicion.Add(destino.Sub(vehiculo.Posicion).Scaled(0.1))
 }
+```
 
 La capacidad de Pixel para manejar transformaciones hizo que fuera sencillo implementar el movimiento de los vehículos de entrada a los espacios de estacionamiento. Además, el uso de texturas precargadas ayudó a optimizar el rendimiento gráfico.
 
@@ -114,6 +124,7 @@ El acceso simultáneo a datos compartidos, como la lista de vehículos, podía c
 - Sincronización entre Lógica y Gráficos:
 Mantener la lógica y el renderizado sincronizados fue desafiante. La solución fue implementar un ciclo principal basado en el tiempo, que aseguraba actualizaciones constantes de las posiciones y el redibujado:
 
+```bash
 go
 func run() {
     for !win.Closed() {
@@ -121,6 +132,58 @@ func run() {
         win.Update()
     }
 }
+```
+
+- Movimiento de Vehículos en la Entrada y el Estacionamiento:
+Uno de los principales retos fue gestionar el movimiento fluido de los vehículos desde la entrada hasta los carriles de estacionamiento asignados, respetando los límites de velocidad y asegurando que la interfaz gráfica refleje correctamente este movimiento. Esto se resolvió con la función ManejarMovimientoVehiculos, la cual controla tanto la entrada como la asignación de posiciones específicas para cada vehículo estacionado.
+
+```bash
+func ManejarMovimientoVehiculos() {
+	for i := len(Vehiculos) - 1; i >= 0; i-- {
+		if Vehiculos[i].Posicion.X < 100 && Vehiculos[i].Carril == -1 && !Vehiculos[i].Entrando {
+			Vehiculos[i].Posicion.X += 10
+			if Vehiculos[i].Posicion.X > 100 {
+				Vehiculos[i].Posicion.X = 100
+			}
+		} else if Vehiculos[i].Carril != -1 && !Vehiculos[i].Estacionado {
+			var xObjetivo, yObjetivo float64
+			anchoCarril := 600.0 / 10
+			if Vehiculos[i].Carril < 10 {
+				xObjetivo = 100.0 + float64(Vehiculos[i].Carril)*anchoCarril + anchoCarril/2
+				yObjetivo = 400 + (500-350)/2
+			} else {
+				xObjetivo = 100.0 + float64(Vehiculos[i].Carril-10)*anchoCarril + anchoCarril/2
+				yObjetivo = 100 + (250-100)/2
+			}
+			EstacionarVehiculo(&Vehiculos[i], xObjetivo, yObjetivo)
+		}
+	}
+	ManejarSalidaVehiculos()
+}
+```
+Esta función asegura que los vehículos avancen en la interfaz gráfica hacia los carriles disponibles, ajustándose a las coordenadas predefinidas en relación con su posición asignada. También verifica que los vehículos se estacionen correctamente dentro de los límites de cada carril.
+
+- Salida de Vehículos:
+El flujo de salida de los vehículos fue otro desafío significativo. Los vehículos deben permanecer estacionados hasta que cumplan con un tiempo definido, tras lo cual se les permite salir. La función ManejarSalidaVehiculos gestiona este proceso y utiliza un sistema de teletransportación visual para reflejar la transición del vehículo hacia la salida.
+
+```bash
+func ManejarSalidaVehiculos() {
+	for i := len(Vehiculos) - 1; i >= 0; i-- {
+		if Vehiculos[i].Estacionado && time.Now().After(Vehiculos[i].HoraSalida) && !Vehiculos[i].Entrando {
+			if !Vehiculos[i].Teletransportando {
+				Vehiculos[i].Teletransportando = true
+				Vehiculos[i].TiempoInicioTeletransportacion = time.Now()
+				Vehiculos[i].Posicion.X = 50
+				Vehiculos[i].Posicion.Y = 400
+			} else if time.Since(Vehiculos[i].TiempoInicioTeletransportacion) >= time.Millisecond*500 {
+				ActualizarEstadoCarril(Vehiculos[i].Carril, false)
+				RemoverVehiculo(i)
+			}
+		}
+	}
+}
+```
+Este enfoque utiliza una transición suave que permite al sistema eliminar los vehículos de la simulación una vez que han salido completamente del estacionamiento, liberando los carriles para nuevos vehículos.
 
 - Optimización del Rendimiento:
 Renderizar múltiples vehículos y actualizarlos en tiempo real puede ser costoso. Para mejorar el rendimiento:
