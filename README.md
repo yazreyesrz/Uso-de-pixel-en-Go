@@ -1,8 +1,7 @@
 # Uso-de-pixel-en-Go
-# El uso de la librería Pixel en Go y cómo agregarlo en una simulación.
+# Uso de Pixel en Go para Animaciones, Movimientos y cómo agregarlo en una simulación
 
-Usando la Librería Pixel en Go para Crear un Simulador de Estacionamiento.
-Cuando decidí crear un simulador de estacionamiento en Go, uno de los mayores retos fue cómo representar visualmente el movimiento de los vehículos de manera fluida y eficiente. Para esto, utilicé la librería Pixel. Esta librería me permitió manejar gráficos en 2D de manera sencilla y con un buen rendimiento, gracias a su uso de OpenGL. A continuación, te contaré cómo la implementé en mi proyecto, explicando a detalle cómo se logra integrar gráficos y animaciones, y cómo Pixel puede ser útil en proyectos similares.
+En la implementación de un simulador de estacionamiento, uno de los aspectos más interesantes fue el uso de la librería Pixel para animar los vehículos y representar visualmente sus movimientos de manera fluida. A continuación, te explicaré cómo utilicé esta librería para lograr animaciones dinámicas, centrándome en el proceso general de animación en Pixel, con ejemplos básicos que ilustran cómo funciona esta librería.
 
 # ¿Por qué Pixel?
 Pixel es una librería de gráficos 2D escrita en Go, diseñada para facilitar la creación de aplicaciones visuales interactivas, como juegos o simuladores. Entre sus características más destacadas se encuentran:
@@ -13,71 +12,21 @@ Pixel es una librería de gráficos 2D escrita en Go, diseñada para facilitar l
 
 Elegí Pixel porque simplificó el manejo gráfico, permitiéndome concentrarme en la lógica del simulador sin complicarme con los detalles del renderizado.
 
-# Mi Implementación del Simulador de Estacionamiento
+# Principios Básicos de Animación con Pixel
+La animación en Pixel se basa en tres elementos principales:
+
+- Sprites: Representan imágenes que se dibujan en pantalla.
+- Matrices de transformación: Se utilizan para cambiar la posición, tamaño o rotación de los sprites.
+- Ciclo de actualización: Un bucle principal que actualiza las posiciones y redibuja los elementos en pantalla a intervalos regulares.
+
+# Mi Implementación de Pixel en un Simulador
 En mi proyecto, el objetivo era simular vehículos que se mueven a través de un estacionamiento y que interactúan entre sí. A continuación, te explico los aspectos clave de la implementación:
 
-- Estructura Vehiculo:
-Para representar cada vehículo, creé una estructura Vehiculo que almacena datos esenciales, como su posición actual, su estado (estacionado o en movimiento) y un identificador único. La posición y las transformaciones se manejan utilizando el tipo pixel.Vec, que Pixel emplea para definir coordenadas y vectores en 2D.
+- Carga de Recursos:
+El primer paso para animar en Pixel es cargar las imágenes que representarán los objetos animados, como vehículos o personajes. Estas imágenes se convierten en sprites.
 
 ```bash
-go
-type Vehiculo struct {
-    ID                          int
-    Posicion                    pixel.Vec
-    PosicionAnterior            pixel.Vec
-    Carril                      int
-    Estacionado                 bool
-    HoraSalida                  time.Time
-    Entrando                    bool
-    Teletransportando           bool
-    TiempoInicioTeletransportacion time.Time
-}
-```
-
-- Gestión Concurrente:
-En una simulación dinámica, múltiples vehículos operan simultáneamente, lo que requiere un manejo adecuado de concurrencia. Utilicé canales (chan) para la comunicación entre goroutines y candados (sync.Mutex) para proteger el acceso a recursos compartidos.
-
-Por ejemplo, al crear un vehículo:
-
-```bash
-go
-var (
-    CanalVehiculos  chan Vehiculo
-    Vehiculos       []Vehiculo
-    CandadoVehiculos sync.Mutex
-)
-
-func CrearVehiculo(id int) Vehiculo {
-    CandadoVehiculos.Lock()
-    defer CandadoVehiculos.Unlock()
-    vehiculo := Vehiculo{
-        ID:           id,
-        Posicion:     pixel.V(0, 300),
-        Carril:       -1,
-        Estacionado:  false,
-    }
-    Vehiculos = append(Vehiculos, vehiculo)
-    return vehiculo
-}
-```
-
-- Asignación de Hora de Salida:
-Cada vehículo tiene una hora de salida aleatoria, lo que simula cuánto tiempo estará estacionado antes de moverse. Esto fue implementado con una función que calcula la hora basada en la duración asignada:
-
-```bash
-go
-func AsignarHoraSalida(vehiculo *Vehiculo, duracion time.Duration) {
-    vehiculo.HoraSalida = time.Now().Add(duracion)
-}
-```
-- Representación Visual con Pixel:
-
-Pixel me permitió crear una representación gráfica de los vehículos y moverlos en la pantalla. Para ello, cargué una textura que representaba al vehículo y la dibujé en las posiciones calculadas en tiempo real:
-
-1.-Cargar Texturas:
-```bash
-go
-func CargarTextura(ruta string) *pixel.Sprite {
+func CargarSprite(ruta string) *pixel.Sprite {
     img, err := loadPicture(ruta)
     if err != nil {
         panic(err)
@@ -85,30 +34,62 @@ func CargarTextura(ruta string) *pixel.Sprite {
     return pixel.NewSprite(img, img.Bounds())
 }
 ```
+La función loadPicture carga una imagen desde un archivo. El sprite resultante se puede dibujar en cualquier posición de la ventana.
 
-2.- Dibujar Vehículos:
+- Movimiento y Transformaciones:
+Pixel utiliza matrices de transformación para mover, rotar o escalar sprites. Por ejemplo, para mover un sprite, se utiliza la transformación pixel.IM.Moved.
+
+Por ejemplo:
+
 ```bash
-go
-func DibujarVehiculos(win *pixelgl.Window, sprite *pixel.Sprite) {
-    for _, vehiculo := range Vehiculos {
-        sprite.Draw(win, pixel.IM.Moved(vehiculo.Posicion))
+func DibujarSprite(win *pixelgl.Window, sprite *pixel.Sprite, posicion pixel.Vec) {
+    matriz := pixel.IM.Moved(posicion) 
+    sprite.Draw(win, matriz)         
+}
+```
+La posición del sprite se representa mediante un vector (pixel.Vec), que contiene las coordenadas en 2D.
+
+- Interpolación para Movimiento Suave:
+La interpolación es una técnica que permite calcular posiciones intermedias entre un punto inicial y un punto final, logrando movimientos más fluidos.
+
+```bash
+func InterpolarPosicion(actual, destino pixel.Vec, factor float64) pixel.Vec {
+    return actual.Add(destino.Sub(actual).Scaled(factor))
+}
+```
+En este ejemplo, actual es la posición actual del objeto, destino es la posición objetivo y factor controla la velocidad del movimiento (por ejemplo, 0.1 significa un movimiento lento y suave).
+
+- Ciclo Principal de Animación:
+
+El ciclo principal es donde ocurre la magia. Este bucle se ejecuta continuamente, actualizando las posiciones de los objetos y redibujándolos en la ventana.
+
+```bash
+func CicloPrincipal(win *pixelgl.Window, sprite *pixel.Sprite, posicion pixel.Vec, destino pixel.Vec) {
+    for !win.Closed() {
+        // Limpia la pantalla
+        win.Clear(colornames.Skyblue)
+
+        // Calcula la nueva posición interpolada
+        posicion = InterpolarPosicion(posicion, destino, 0.1)
+
+        // Dibuja el sprite en la nueva posición
+        DibujarSprite(win, sprite, posicion)
+
+        // Actualiza la ventana
+        win.Update()
     }
 }
 ```
+En este ciclo:
+- Se limpia la pantalla para preparar el siguiente fotograma.
+- Se calcula la nueva posición del objeto utilizando interpolación.
+- Se dibuja el objeto en la nueva posición.
+- Se actualiza la ventana para reflejar los cambios.
 
-3.- Movimiento Dinámico: En cada ciclo del juego, actualicé las posiciones de los vehículos utilizando interpolación para garantizar que el movimiento fuera fluido:
-     
-```bash
-go
-func ActualizarPosicion(vehiculo *Vehiculo, destino pixel.Vec) {
-    vehiculo.Posicion = vehiculo.Posicion.Add(destino.Sub(vehiculo.Posicion).Scaled(0.1))
-}
-```
-
-La capacidad de Pixel para manejar transformaciones hizo que fuera sencillo implementar el movimiento de los vehículos de entrada a los espacios de estacionamiento. Además, el uso de texturas precargadas ayudó a optimizar el rendimiento gráfico.
+La capacidad de Pixel para manejar transformaciones hizo que fuera sencillo implementar el movimiento de mi simulador. Además, el uso de texturas precargadas ayudó a optimizar el rendimiento gráfico.
 
 
-# ¿Cómo Pixel Ayuda en Este Proyecto?
+# ¿Cómo Pixel Ayuda en los Proyecto?
 
 Pixel jugó un papel clave en la visualización del simulador. Algunos aspectos importantes donde Pixel fue invaluable incluyen:
 
@@ -133,57 +114,41 @@ func run() {
     }
 }
 ```
-
-- Movimiento de Vehículos en la Entrada y el Estacionamiento:
-Uno de los principales retos fue gestionar el movimiento fluido de los vehículos desde la entrada hasta los carriles de estacionamiento asignados, respetando los límites de velocidad y asegurando que la interfaz gráfica refleje correctamente este movimiento. Esto se resolvió con la función ManejarMovimientoVehiculos, la cual controla tanto la entrada como la asignación de posiciones específicas para cada vehículo estacionado.
-
-```bash
-func ManejarMovimientoVehiculos() {
-	for i := len(Vehiculos) - 1; i >= 0; i-- {
-		if Vehiculos[i].Posicion.X < 100 && Vehiculos[i].Carril == -1 && !Vehiculos[i].Entrando {
-			Vehiculos[i].Posicion.X += 10
-			if Vehiculos[i].Posicion.X > 100 {
-				Vehiculos[i].Posicion.X = 100
-			}
-		} else if Vehiculos[i].Carril != -1 && !Vehiculos[i].Estacionado {
-			var xObjetivo, yObjetivo float64
-			anchoCarril := 600.0 / 10
-			if Vehiculos[i].Carril < 10 {
-				xObjetivo = 100.0 + float64(Vehiculos[i].Carril)*anchoCarril + anchoCarril/2
-				yObjetivo = 400 + (500-350)/2
-			} else {
-				xObjetivo = 100.0 + float64(Vehiculos[i].Carril-10)*anchoCarril + anchoCarril/2
-				yObjetivo = 100 + (250-100)/2
-			}
-			EstacionarVehiculo(&Vehiculos[i], xObjetivo, yObjetivo)
-		}
-	}
-	ManejarSalidaVehiculos()
-}
-```
-Esta función asegura que los vehículos avancen en la interfaz gráfica hacia los carriles disponibles, ajustándose a las coordenadas predefinidas en relación con su posición asignada. También verifica que los vehículos se estacionen correctamente dentro de los límites de cada carril.
-
-- Salida de Vehículos:
-El flujo de salida de los vehículos fue otro desafío significativo. Los vehículos deben permanecer estacionados hasta que cumplan con un tiempo definido, tras lo cual se les permite salir. La función ManejarSalidaVehiculos gestiona este proceso y utiliza un sistema de teletransportación visual para reflejar la transición del vehículo hacia la salida.
+- Animaciones de Rotación y Escalado:
+Además de mover objetos, Pixel permite rotarlos y escalarlos con facilidad. Aquí un ejemplo de cómo rotar un sprite alrededor de su centro:
 
 ```bash
-func ManejarSalidaVehiculos() {
-	for i := len(Vehiculos) - 1; i >= 0; i-- {
-		if Vehiculos[i].Estacionado && time.Now().After(Vehiculos[i].HoraSalida) && !Vehiculos[i].Entrando {
-			if !Vehiculos[i].Teletransportando {
-				Vehiculos[i].Teletransportando = true
-				Vehiculos[i].TiempoInicioTeletransportacion = time.Now()
-				Vehiculos[i].Posicion.X = 50
-				Vehiculos[i].Posicion.Y = 400
-			} else if time.Since(Vehiculos[i].TiempoInicioTeletransportacion) >= time.Millisecond*500 {
-				ActualizarEstadoCarril(Vehiculos[i].Carril, false)
-				RemoverVehiculo(i)
-			}
-		}
-	}
+func RotarSprite(win *pixelgl.Window, sprite *pixel.Sprite, posicion pixel.Vec, angulo float64) {
+    matriz := pixel.IM.Rotated(posicion, angulo) // Rotación alrededor de 'posicion'
+    sprite.Draw(win, matriz)
 }
 ```
-Este enfoque utiliza una transición suave que permite al sistema eliminar los vehículos de la simulación una vez que han salido completamente del estacionamiento, liberando los carriles para nuevos vehículos.
+El ángulo de rotación se expresa en radianes, y la rotación se realiza alrededor de un punto específico, como el centro del sprite.
+
+- Manejo de Tiempo en Animaciones:
+Para garantizar que las animaciones tengan una velocidad consistente independientemente de la velocidad del hardware, se puede utilizar un temporizador.
+
+```bash
+func CicloConTiempo(win *pixelgl.Window, sprite *pixel.Sprite, posicion pixel.Vec, velocidad pixel.Vec) {
+    ultimo := time.Now()
+    for !win.Closed() {
+        // Calcula el tiempo transcurrido desde el último fotograma
+        delta := time.Since(ultimo).Seconds()
+        ultimo = time.Now()
+
+        // Actualiza la posición en función del tiempo y la velocidad
+        posicion = posicion.Add(velocidad.Scaled(delta))
+
+        // Limpia la pantalla y dibuja el sprite
+        win.Clear(colornames.Black)
+        DibujarSprite(win, sprite, posicion)
+
+        // Actualiza la ventana
+        win.Update()
+    }
+}
+```
+En este caso, la posición se actualiza en función del tiempo transcurrido (delta) y la velocidad del objeto.
 
 - Optimización del Rendimiento:
 Renderizar múltiples vehículos y actualizarlos en tiempo real puede ser costoso. Para mejorar el rendimiento:
@@ -193,11 +158,9 @@ Renderizar múltiples vehículos y actualizarlos en tiempo real puede ser costos
     - Usé interpolación para suavizar los movimientos.
 
 
-
 # Conclusión
-Usar la librería Pixel en mi proyecto de simulador de estacionamiento fue una decisión acertada. Pixel no solo simplificó la implementación de gráficos y animaciones, sino que también permitió crear una experiencia interactiva y visualmente atractiva. Si estás desarrollando un proyecto que involucre gráficos 2D, Pixel es una herramienta que vale la pena explorar por su balance entre simplicidad y potencia.
+El uso de Pixel en Go para animaciones es una forma eficiente y poderosa de agregar dinamismo a cualquier proyecto gráfico. A través de transformaciones, interpolación y un ciclo de renderizado en tiempo real, es posible crear movimientos suaves y realistas. 
 
-Este proyecto me permitió aprender cómo integrar gráficos en tiempo real con la lógica concurrente en Go. Además, dejó la puerta abierta para futuras mejoras, como agregar colisiones entre vehículos, estadísticas visuales del estacionamiento o incluso una interfaz de usuario más interactiva.
-
+Esta librería no solo facilita el manejo de gráficos 2D, sino que también permite combinar lógica y visualización de manera fluida, lo que la convierte en una excelente opción para simulaciones, juegos y aplicaciones interactivas.
 
 221262 - Reyes Ruiz Yazmin
