@@ -7,9 +7,10 @@ Cuando decidí crear un simulador de estacionamiento en Go, uno de los mayores r
 # ¿Por qué Pixel?
 Pixel es una librería de gráficos 2D escrita en Go, diseñada para facilitar la creación de aplicaciones visuales interactivas, como juegos o simuladores. Entre sus características más destacadas se encuentran:
 
-Rendimiento optimizado: Gracias a su implementación sobre OpenGL, Pixel asegura un manejo eficiente de gráficos incluso con cargas elevadas.
-Versatilidad: Pixel no solo permite manejar gráficos, sino también entradas de teclado y ratón, lo que facilita la interacción con el usuario.
-Soporte para animaciones: Con Pixel, es posible manejar transformaciones, rotaciones y escalas de manera fluida.
+- Rendimiento optimizado: Gracias a su implementación sobre OpenGL, Pixel asegura un manejo eficiente de gráficos incluso con cargas elevadas.
+- Versatilidad: Pixel no solo permite manejar gráficos, sino también entradas de teclado y ratón, lo que facilita la interacción con el usuario.
+- Soporte para animaciones: Con Pixel, es posible manejar transformaciones, rotaciones y escalas de manera fluida.
+
 Elegí Pixel porque simplificó el manejo gráfico, permitiéndome concentrarme en la lógica del simulador sin complicarme con los detalles del renderizado.
 
 # Mi Implementación del Simulador de Estacionamiento
