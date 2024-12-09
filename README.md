@@ -1,11 +1,16 @@
 # Uso-de-pixel-en-Go
 # El uso de la librería Pixel en Go y cómo agregarlo en una simulación.
 
-Usando la Librería Pixel en Go para Crear un Simulador de Estacionamiento
+Usando la Librería Pixel en Go para Crear un Simulador de Estacionamiento.
 Cuando decidí crear un simulador de estacionamiento en Go, uno de los mayores retos fue cómo representar visualmente el movimiento de los vehículos de manera fluida y eficiente. Para esto, utilicé la librería Pixel. Esta librería me permitió manejar gráficos en 2D de manera sencilla y con un buen rendimiento, gracias a su uso de OpenGL. A continuación, te contaré cómo la implementé en mi proyecto y cómo puede ser útil en proyectos similares.
 
 # ¿Por qué Pixel?
-Pixel es una librería de gráficos 2D escrita en Go, diseñada para facilitar la creación de aplicaciones visuales interactivas, como juegos o simuladores. Lo que me atrajo de Pixel fue su rendimiento optimizado, su simplicidad y su capacidad para manejar gráficos y animaciones sin complicaciones. Además, al estar basada en OpenGL, asegura que los proyectos funcionen de manera fluida incluso cuando hay una alta carga gráfica.
+Pixel es una librería de gráficos 2D escrita en Go, diseñada para facilitar la creación de aplicaciones visuales interactivas, como juegos o simuladores. Entre sus características más destacadas se encuentran:
+
+Rendimiento optimizado: Gracias a su implementación sobre OpenGL, Pixel asegura un manejo eficiente de gráficos incluso con cargas elevadas.
+Versatilidad: Pixel no solo permite manejar gráficos, sino también entradas de teclado y ratón, lo que facilita la interacción con el usuario.
+Soporte para animaciones: Con Pixel, es posible manejar transformaciones, rotaciones y escalas de manera fluida.
+Elegí Pixel porque simplificó el manejo gráfico, permitiéndome concentrarme en la lógica del simulador sin complicarme con los detalles del renderizado.
 
 # Mi Implementación del Simulador de Estacionamiento
 En mi proyecto, el objetivo era simular vehículos que se mueven a través de un estacionamiento y que interactúan entre sí. Aquí te explico cómo utilicé Pixel para representar esos vehículos y su movimiento.
