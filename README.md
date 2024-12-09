@@ -14,25 +14,26 @@ Pixel es una librería de gráficos 2D escrita en Go, diseñada para facilitar l
 Elegí Pixel porque simplificó el manejo gráfico, permitiéndome concentrarme en la lógica del simulador sin complicarme con los detalles del renderizado.
 
 # Mi Implementación del Simulador de Estacionamiento
-En mi proyecto, el objetivo era simular vehículos que se mueven a través de un estacionamiento y que interactúan entre sí. Aquí te explico cómo utilicé Pixel para representar esos vehículos y su movimiento.
-Primero, creé una estructura Vehiculo, que incluye la posición del vehículo en la pantalla (Posicion), el carril en el que se encuentra y el estado de estacionado. Cada vehículo tiene una posición inicial (pixel.V(0, 300)) que representé utilizando el tipo pixel.Vec, que es la forma en que Pixel maneja las coordenadas 2D.
+En mi proyecto, el objetivo era simular vehículos que se mueven a través de un estacionamiento y que interactúan entre sí. A continuación, te explico los aspectos clave de la implementación:
+
+- Estructura Vehiculo:
+Para representar cada vehículo, creé una estructura que almacena datos como su posición actual, su estado (estacionado o en movimiento), y un identificador único. La posición se representa con pixel.Vec, que es el tipo de coordenadas utilizado por Pixel:
 
 go
 type Vehiculo struct {
-    ID               int
-    Posicion         pixel.Vec
-    PosicionAnterior pixel.Vec
-    Carril           int
-    Estacionado      bool
-    HoraSalida       time.Time
-    Entrando         bool
-    Teletransportando bool
+    ID                          int
+    Posicion                    pixel.Vec
+    PosicionAnterior            pixel.Vec
+    Carril                      int
+    Estacionado                 bool
+    HoraSalida                  time.Time
+    Entrando                    bool
+    Teletransportando           bool
     TiempoInicioTeletransportacion time.Time
 }
 
-
-Para manejar múltiples vehículos de forma concurrente, utilicé un canal de Go (CanalVehiculos) y un candado (CandadoVehiculos) para evitar condiciones de carrera. Esto me permitió generar y manipular los vehículos de manera segura.
-
+- Gestión Concurrente:
+Dado que en la simulación hay múltiples vehículos operando simultáneamente, utilicé canales (chan) y candados (sync.Mutex) para manejar la concurrencia de manera segura. Aquí un ejemplo de cómo se crean nuevos vehículos:
 
 go
 var (
@@ -54,15 +55,49 @@ func CrearVehiculo(id int) Vehiculo {
     return vehiculo
 }
 
-Cada vehículo es asignado a una "hora de salida" aleatoria, lo que representa el tiempo que estará estacionado antes de partir, utilizando la función AsignarHoraSalida.
+- Cada vehículo tiene una hora de salida aleatoria, asignada con la función AsignarHoraSalida. Esto simula el tiempo que permanecerá estacionado antes de salir:
+
+go
+func AsignarHoraSalida(vehiculo *Vehiculo, duracion time.Duration) {
+    vehiculo.HoraSalida = time.Now().Add(duracion)
+}
+
+- Representación Visual con Pixel:
+Pixel me permitió dibujar y mover los vehículos en la pantalla de forma fluida. Para renderizar un vehículo en la posición correspondiente, utilicé la siguiente función:
+
+go
+func DibujarVehiculos(win *pixelgl.Window) {
+    for _, vehiculo := range Vehiculos {
+        sprite.Draw(win, pixel.IM.Moved(vehiculo.Posicion))
+    }
+}
+
+La capacidad de Pixel para manejar transformaciones hizo que fuera sencillo implementar el movimiento de los vehículos de entrada a los espacios de estacionamiento. Además, el uso de texturas precargadas ayudó a optimizar el rendimiento gráfico.
+
 
 # ¿Cómo Pixel Ayuda en Este Proyecto?
 
-Lo que Pixel me proporcionó fue una manera sencilla de representar estos vehículos de manera visual. Utilizando su capacidad de manejar gráficos y animaciones, pude mover los vehículos en la pantalla, cambiar sus posiciones y mostrar eventos de entrada y salida de los mismos. Esto fue clave para representar el comportamiento dinámico del estacionamiento.
-Además, Pixel facilita la creación de interfaces visuales interactivas. Aunque en mi caso el enfoque principal fue la simulación, pude integrar elementos como el movimiento en tiempo real y la interacción con el usuario de manera eficiente.
+Pixel jugó un papel clave en la visualización del simulador. Algunos aspectos importantes donde Pixel fue invaluable incluyen:
+
+- Animaciones fluidas: Pixel facilita el movimiento de los vehículos en tiempo real, lo que mejora la experiencia visual.
+- Manejo de gráficos 2D: Con Pixel, pude cargar y manipular imágenes de vehículos, carriles y fondo de manera sencilla.
+- Interactividad: Implementar entradas del teclado para pausar la simulación o ajustar parámetros fue intuitivo gracias a la integración de Pixel con eventos de usuario.
+
+# Retos y Soluciones
+
+- Manejo de Concurrencia:
+El mayor reto fue sincronizar el acceso a los datos compartidos de los vehículos. La solución fue implementar candados para proteger las operaciones críticas.
+
+- Sincronización entre Lógica y Gráficos:
+Lograr que la lógica del simulador y el renderizado de Pixel estuvieran perfectamente sincronizados requirió diseñar un ciclo principal eficiente que actualizara ambos aspectos simultáneamente.
+
+- Optimización del Rendimiento:
+Dibujar múltiples vehículos simultáneamente puede ser costoso si no se optimiza. Precargar texturas y limitar la cantidad de operaciones gráficas redundantes ayudó a mantener la fluidez.
 
 # Conclusión
-Usar la librería Pixel en mi proyecto de simulador de estacionamiento me permitió enfocarme en la lógica y la interacción de los vehículos sin preocuparme por los detalles complejos del renderizado gráfico. La facilidad para gestionar imágenes, animaciones y entradas del usuario me permitió crear una experiencia visual fluida y atractiva para el simulador. Si estás desarrollando un proyecto que requiera gráficos en 2D y una buena interactividad, definitivamente te recomiendo darle un vistazo a Pixel.
+Usar la librería Pixel en mi proyecto de simulador de estacionamiento fue una decisión acertada. Pixel no solo simplificó la implementación de gráficos y animaciones, sino que también permitió crear una experiencia interactiva y visualmente atractiva. Si estás desarrollando un proyecto que involucre gráficos 2D, Pixel es una herramienta que vale la pena explorar por su balance entre simplicidad y potencia.
+
+Este proyecto me permitió aprender cómo integrar gráficos en tiempo real con la lógica concurrente en Go. Además, dejó la puerta abierta para futuras mejoras, como agregar colisiones entre vehículos, estadísticas visuales del estacionamiento o incluso una interfaz de usuario más interactiva.
 
 
 221262 - Reyes Ruiz Yazmin
